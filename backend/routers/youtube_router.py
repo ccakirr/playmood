@@ -5,6 +5,9 @@ from googleapiclient.discovery import build
 from fastapi import Request
 import os
 import time
+import json
+import base64
+import tempfile
 
 # Disable HTTPS requirement for local development
 os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
@@ -13,6 +16,24 @@ router = APIRouter(prefix="/youtube", tags=["youtube"])
 
 # In-memory storage for playlists (temporary solution until DB is implemented)
 playlists_db = {}
+
+def get_client_secrets_file():
+	"""Get client secrets file path, handling both local file and base64 env var"""
+	# Check if base64 encoded secrets exist (Railway)
+	base64_secrets = os.getenv("GOOGLE_CLIENT_SECRETS_BASE64")
+	if base64_secrets:
+		# Decode and write to temporary file
+		try:
+			decoded = base64.b64decode(base64_secrets)
+			temp_file = tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False)
+			temp_file.write(decoded.decode('utf-8'))
+			temp_file.close()
+			return temp_file.name
+		except Exception as e:
+			print(f"Error decoding base64 secrets: {e}")
+	
+	# Fall back to local file
+	return os.getenv("GOOGLE_CLIENT_SECRETS", "client_secret.json")
 
 def search_youtube(artist, title, youtube):
 	query = f"{artist} {title} official audio"
@@ -55,7 +76,7 @@ def add_to_playlist(youtube, playlist_id, video_id):
 
 @router.get("/start")
 def youtube_start(playlist_id: str):
-	client_secrets_file = os.getenv("GOOGLE_CLIENT_SECRETS", "client_secret.json")
+	client_secrets_file = get_client_secrets_file()
 	redirect_uri = os.getenv("REDIRECT_URI", "http://localhost:8000/youtube/callback")
 	
 	flow = Flow.from_client_secrets_file(
@@ -75,7 +96,7 @@ def youtube_start(playlist_id: str):
 
 @router.get("/callback")
 def youtube_callback(request: Request):
-	client_secrets_file = os.getenv("GOOGLE_CLIENT_SECRETS", "client_secret.json")
+	client_secrets_file = get_client_secrets_file()
 	redirect_uri = os.getenv("REDIRECT_URI", "http://localhost:8000/youtube/callback")
 	
 	flow = Flow.from_client_secrets_file(
