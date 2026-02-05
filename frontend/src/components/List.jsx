@@ -30,9 +30,32 @@ const List = ({ result }) => {
     return null;
   }
 
+  const handleYouTubeExport = () => {
+    const baseUrl = import.meta.env.VITE_API_URL || "http://localhost:8000";
+    const youtubeUrl = `${baseUrl}/youtube/start?playlist_id=${result.playlist_id}`;
+    window.open(youtubeUrl, "_blank");
+  };
+
   return (
     <div className="space-y-4">
-      <h2 className="text-2xl font-semibold">{result.playlist_name}</h2>
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-semibold">{result.playlist_name}</h2>
+        <button
+          onClick={handleYouTubeExport}
+          className="btn btn-error btn-sm gap-2"
+          title="YouTube'da Görüntüle"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="currentColor"
+            className="w-5 h-5"
+          >
+            <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" />
+          </svg>
+          YouTube'da Aç
+        </button>
+      </div>
       <ul className="divide-y divide-base-200 rounded-xl border border-base-200">
         {result.tracks.map((track, index) => (
           <li

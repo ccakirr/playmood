@@ -12,6 +12,7 @@ class Track(BaseModel):
 	title: str
 
 class PlaylistResponse(BaseModel):
+	playlist_id: str
 	playlist_name: str
 	tracks: List[Track]
 

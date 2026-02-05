@@ -4,6 +4,10 @@ from fastapi import APIRouter, HTTPException
 from googleapiclient.discovery import build
 from fastapi import Request
 import os
+import time
+
+# Disable HTTPS requirement for local development
+os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
 
 router = APIRouter(prefix="/youtube", tags=["youtube"])
 
@@ -29,18 +33,24 @@ def search_youtube(artist, title, youtube):
 		return None
 
 def add_to_playlist(youtube, playlist_id, video_id):
-	youtube.playlistItems().insert(
-		part="snippet",
-		body={
-			"snippet": {
-				"playlistId": playlist_id,
-				"resourceId": {
-					"kind": "youtube#video",
-					"videoId": video_id
+	try:
+		youtube.playlistItems().insert(
+			part="snippet",
+			body={
+				"snippet": {
+					"playlistId": playlist_id,
+					"resourceId": {
+						"kind": "youtube#video",
+						"videoId": video_id
+					}
 				}
 			}
-		}
-	).execute()
+		).execute()
+		time.sleep(0.5)  # Rate limiting
+		return True
+	except Exception as e:
+		print(f"Error adding video {video_id}: {e}")
+		return False
 
 
 @router.get("/start")
@@ -99,11 +109,18 @@ def youtube_callback(request: Request):
 
 	yt_playlist_id = playlist["id"]
 
+	# Track added videos to avoid duplicates
+	added_videos = set()
+	success_count = 0
+
 	for track in ai_playlist["tracks"]:
 		video_id = search_youtube(track["artist"], track["title"], youtube)
-		if video_id:
-			add_to_playlist(youtube, yt_playlist_id, video_id)
+		if video_id and video_id not in added_videos:
+			if add_to_playlist(youtube, yt_playlist_id, video_id):
+				added_videos.add(video_id)
+				success_count += 1
+				print(f"✅ Added: {track['artist']} - {track['title']}")
 
+	print(f"\n🎵 Playlist created! Added {success_count}/{len(ai_playlist['tracks'])} songs")
 	yt_url = f"https://www.youtube.com/playlist?list={yt_playlist_id}"
-	return RedirectResponse(yt_url)
 	return RedirectResponse(yt_url)
