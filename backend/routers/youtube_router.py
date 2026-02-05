@@ -144,4 +144,8 @@ def youtube_callback(request: Request):
 
 	print(f"\n🎵 Playlist created! Added {success_count}/{len(ai_playlist['tracks'])} songs")
 	yt_url = f"https://www.youtube.com/playlist?list={yt_playlist_id}"
-	return RedirectResponse(yt_url)
+	
+	# Redirect to frontend with YouTube URL
+	frontend_url = os.getenv("FRONTEND_URL", "http://localhost:5173")
+	redirect_url = f"{frontend_url}/youtube-success?playlist={yt_playlist_id}"
+	return RedirectResponse(redirect_url)
