@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import List from "./List";
 
 const InputLayer = () => {
@@ -6,6 +7,18 @@ const InputLayer = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // Check for error parameter from URL (e.g., YouTube quota error)
+  useEffect(() => {
+    const urlError = searchParams.get("error");
+    if (urlError) {
+      setError(decodeURIComponent(urlError));
+      // Clear the error parameter from URL
+      searchParams.delete("error");
+      setSearchParams(searchParams);
+    }
+  }, [searchParams, setSearchParams]);
 
   const handleSubmit = async () => {
     if (!prompt.trim()) {
