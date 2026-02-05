@@ -1,5 +1,6 @@
 import os
 import json
+import uuid
 from fastapi import APIRouter, HTTPException
 from dotenv import load_dotenv
 from pydantic import BaseModel
@@ -54,4 +55,13 @@ def generate_playlist(request: PlaylistRequest):
 			detail="Invalid or non-music prompt."
 		)
 
-	return parsed
+	playlist_id = str(uuid.uuid4())
+
+	# Store in temporary storage (shared with youtube_router)
+	from routers.youtube_router import playlists_db
+	playlists_db[playlist_id] = parsed
+
+	return {
+		"playlist_id": playlist_id,
+		**parsed
+	}

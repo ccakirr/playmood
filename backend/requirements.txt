@@ -3,3 +3,5 @@ uvicorn[standard]
 python-dotenv
 openai
 pydantic
+google-auth-oauthlib
+google-api-python-client
