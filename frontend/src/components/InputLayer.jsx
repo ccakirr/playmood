@@ -36,9 +36,9 @@ const InputLayer = () => {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         // Backend'deki PlaylistRequest modeline uygun (limit ekledik)
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           prompt: prompt,
-          limit: 15 // Last.fm'den kaç şarkı istediğimizi buraya yazabiliriz
+          limit: 15, // Last.fm'den kaç şarkı istediğimizi buraya yazabiliriz
         }),
       });
 
@@ -73,7 +73,8 @@ const InputLayer = () => {
               Play<span className="text-primary">Mood</span>
             </h1>
             <p className="max-w-2xl text-base text-base-content/70">
-              Describe a mood, artist, or moment. Our AI curates high-quality hits.
+              Describe a mood, artist, or moment. Our AI curates high-quality
+              hits.
             </p>
           </div>
 
@@ -89,14 +90,16 @@ const InputLayer = () => {
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
               onKeyDown={(e) => {
-                if (e.key === 'Enter' && e.ctrlKey) handleSubmit();
+                if (e.key === "Enter" && e.ctrlKey) handleSubmit();
               }}
             />
             <div className="flex justify-between items-center">
-                <p className="text-xs text-base-content/50">
-                    Tip: mention mood, genre, or setting.
-                </p>
-                <span className="text-xs opacity-40">Press Ctrl + Enter to generate</span>
+              <p className="text-xs text-base-content/50">
+                Tip: mention mood, genre, or setting.
+              </p>
+              <span className="text-xs opacity-40">
+                Press Ctrl + Enter to generate
+              </span>
             </div>
           </div>
 
@@ -121,13 +124,25 @@ const InputLayer = () => {
           {/* Status Messages */}
           {error && (
             <div className="alert alert-error shadow-sm">
-               <svg xmlns="http://www.w3.org/2000/svg" className="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-               <span>{error}</span>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="stroke-current shrink-0 h-6 w-6"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
+              <span>{error}</span>
             </div>
           )}
 
           {/* Result List */}
-          {result && <List result={result} />}
+          {result && <List result={result} prompt={prompt} />}
         </div>
       </div>
     </div>

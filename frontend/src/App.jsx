@@ -3,6 +3,7 @@ import InputLayer from "./components/InputLayer";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
 import YoutubeSuccess from "./pages/YoutubeSuccess";
+import MyPlaylists from "./pages/MyPlaylists";
 
 function App() {
   return (
@@ -11,6 +12,7 @@ function App() {
       <Routes>
         <Route path="/" element={<InputLayer />} />
         <Route path="/youtube-success" element={<YoutubeSuccess />} />
+        <Route path="/my-playlists" element={<MyPlaylists />} />
       </Routes>
       <Footer />
     </>

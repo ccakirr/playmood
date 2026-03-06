@@ -3,6 +3,14 @@ uvicorn[standard]
 python-dotenv
 openai
 pydantic
+pydantic[email]
 google-auth-oauthlib
 google-api-python-client
 spotipy
+# Database
+sqlalchemy
+psycopg2-binary
+# Auth
+bcrypt
+PyJWT
+python-multipart
