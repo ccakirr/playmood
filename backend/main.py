@@ -1,6 +1,4 @@
 import os
-from openai import OpenAI
-from services.agent import DjAI
 from fastapi import FastAPI
 from routers import playlist_router, youtube_router
 from fastapi.middleware.cors import CORSMiddleware

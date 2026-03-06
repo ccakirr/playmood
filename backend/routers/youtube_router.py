@@ -1,195 +1,140 @@
 from fastapi.responses import RedirectResponse
 from google_auth_oauthlib.flow import Flow
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
-from fastapi import Request
 import os
 import time
 import json
 import base64
 import tempfile
 
-# Disable HTTPS requirement for local development
+# HTTPS zorunluluğunu yerelde devre dışı bırak
 os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
 
 router = APIRouter(prefix="/youtube", tags=["youtube"])
 
-# In-memory storage for playlists (temporary solution until DB is implemented)
+# Bellek içi depolama (DİĞER ROUTER BURAYI IMPORT ETMELİ)
 playlists_db = {}
 
 def get_client_secrets_file():
-	"""Get client secrets file path, handling both local file and base64 env var"""
-	# Check if base64 encoded secrets exist (Railway)
-	base64_secrets = os.getenv("GOOGLE_CLIENT_SECRETS_BASE64")
-	if base64_secrets:
-		# Decode and write to temporary file
-		try:
-			decoded = base64.b64decode(base64_secrets)
-			temp_file = tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False)
-			temp_file.write(decoded.decode('utf-8'))
-			temp_file.close()
-			return temp_file.name
-		except Exception as e:
-			print(f"Error decoding base64 secrets: {e}")
-	
-	# Fall back to local file
-	return os.getenv("GOOGLE_CLIENT_SECRETS", "client_secret.json")
+    base64_secrets = os.getenv("GOOGLE_CLIENT_SECRETS_BASE64")
+    if base64_secrets:
+        try:
+            decoded = base64.b64decode(base64_secrets)
+            temp_file = tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False)
+            temp_file.write(decoded.decode('utf-8'))
+            temp_file.close()
+            return temp_file.name
+        except Exception as e:
+            print(f"Error decoding base64 secrets: {e}")
+    return os.getenv("GOOGLE_CLIENT_SECRETS", "client_secret.json")
 
 def search_youtube(artist, title, youtube):
-	query = f"{artist} {title} official audio"
+    # Last.fm'den gelen artist_name ve track_name kullanılıyor
+    query = f"{artist} {title} official audio"
+    try:
+        search = youtube.search().list(
+            part="snippet",
+            q=query,
+            type="video",
+            maxResults=1
+        ).execute()
 
-	try:
-		search = youtube.search().list(
-			part="snippet",
-			q=query,
-			type="video",
-			maxResults=1
-		).execute()
-
-		if search.get("items"):
-			return search["items"][0]["id"]["videoId"]
-		return None
-	except HttpError as e:
-		error_details = json.loads(e.content.decode('utf-8'))
-		error_reason = error_details.get('error', {}).get('errors', [{}])[0].get('reason', 'unknown')
-		
-		if error_reason == 'quotaExceeded':
-			print(f"⚠️ YouTube API quota exceeded while searching for {artist} - {title}")
-			raise  # Re-raise to be handled by the caller
-		else:
-			print(f"Error searching for {artist} - {title}: {e}")
-			return None
-	except Exception as e:
-		print(f"Error searching for {artist} - {title}: {e}")
-		return None
+        if search.get("items"):
+            return search["items"][0]["id"]["videoId"]
+        return None
+    except HttpError as e:
+        error_details = json.loads(e.content.decode('utf-8'))
+        if error_details.get('error', {}).get('errors', [{}])[0].get('reason') == 'quotaExceeded':
+            raise e
+        return None
 
 def add_to_playlist(youtube, playlist_id, video_id):
-	try:
-		youtube.playlistItems().insert(
-			part="snippet",
-			body={
-				"snippet": {
-					"playlistId": playlist_id,
-					"resourceId": {
-						"kind": "youtube#video",
-						"videoId": video_id
-					}
-				}
-			}
-		).execute()
-		time.sleep(0.5)  # Rate limiting
-		return True
-	except HttpError as e:
-		error_details = json.loads(e.content.decode('utf-8'))
-		error_reason = error_details.get('error', {}).get('errors', [{}])[0].get('reason', 'unknown')
-		
-		if error_reason == 'quotaExceeded':
-			print(f"⚠️ YouTube API quota exceeded while adding video {video_id}")
-			raise  # Re-raise to be handled by the caller
-		else:
-			print(f"Error adding video {video_id}: {e}")
-			return False
-	except Exception as e:
-		print(f"Error adding video {video_id}: {e}")
-		return False
-
+    try:
+        youtube.playlistItems().insert(
+            part="snippet",
+            body={
+                "snippet": {
+                    "playlistId": playlist_id,
+                    "resourceId": {"kind": "youtube#video", "videoId": video_id}
+                }
+            }
+        ).execute()
+        time.sleep(0.5) 
+        return True
+    except Exception as e:
+        print(f"Error adding video {video_id}: {e}")
+        return False
 
 @router.get("/start")
 def youtube_start(playlist_id: str):
-	client_secrets_file = get_client_secrets_file()
-	redirect_uri = os.getenv("REDIRECT_URI", "http://localhost:8000/youtube/callback")
-	
-	flow = Flow.from_client_secrets_file(
-		client_secrets_file,
-		scopes=["https://www.googleapis.com/auth/youtube"],
-		redirect_uri=redirect_uri
-	)
+    client_secrets_file = get_client_secrets_file()
+    redirect_uri = os.getenv("REDIRECT_URI", "http://localhost:8000/youtube/callback")
+    
+    flow = Flow.from_client_secrets_file(
+        client_secrets_file,
+        scopes=["https://www.googleapis.com/auth/youtube"],
+        redirect_uri=redirect_uri
+    )
 
-	auth_url, _ = flow.authorization_url(
-		access_type="offline",
-		prompt="consent",
-		state=playlist_id
-	)
-
-	return RedirectResponse(auth_url)
-
+    auth_url, _ = flow.authorization_url(
+        access_type="offline",
+        prompt="consent",
+        state=playlist_id
+    )
+    return RedirectResponse(auth_url)
 
 @router.get("/callback")
 def youtube_callback(request: Request):
-	client_secrets_file = get_client_secrets_file()
-	redirect_uri = os.getenv("REDIRECT_URI", "http://localhost:8000/youtube/callback")
-	frontend_url = os.getenv("FRONTEND_URL", "http://localhost:5173")
-	
-	try:
-		flow = Flow.from_client_secrets_file(
-			client_secrets_file,
-			scopes=["https://www.googleapis.com/auth/youtube"],
-			redirect_uri=redirect_uri
-		)
+    client_secrets_file = get_client_secrets_file()
+    redirect_uri = os.getenv("REDIRECT_URI", "http://localhost:8000/youtube/callback")
+    frontend_url = os.getenv("FRONTEND_URL", "http://localhost:5173")
+    
+    try:
+        flow = Flow.from_client_secrets_file(
+            client_secrets_file,
+            scopes=["https://www.googleapis.com/auth/youtube"],
+            redirect_uri=redirect_uri
+        )
+        flow.fetch_token(authorization_response=str(request.url))
+        credentials = flow.credentials
 
-		flow.fetch_token(authorization_response=str(request.url))
-		credentials = flow.credentials
+        playlist_id_from_state = request.query_params.get("state")
+        
+        # Bu dosyadaki playlists_db'den veriyi alıyoruz
+        ai_playlist = playlists_db.get(playlist_id_from_state)
+        if not ai_playlist:
+            raise HTTPException(status_code=404, detail="Playlist data not found in memory")
 
-		playlist_id = request.query_params.get("state")
-		
-		# Get playlist from temporary storage
-		ai_playlist = playlists_db.get(playlist_id)
-		if not ai_playlist:
-			raise HTTPException(status_code=404, detail="Playlist not found")
+        youtube = build("youtube", "v3", credentials=credentials)
 
-		youtube = build("youtube", "v3", credentials=credentials)
+        # Playlist oluşturma
+        playlist = youtube.playlists().insert(
+            part="snippet,status",
+            body={
+                "snippet": {
+                    "title": ai_playlist.get("playlist_name", "My PlayMood List"),
+                    "description": "Generated by PlayMood AI"
+                },
+                "status": {"privacyStatus": "private"}
+            }
+        ).execute()
 
-		playlist = youtube.playlists().insert(
-			part="snippet,status",
-			body={
-				"snippet": {
-					"title": ai_playlist["playlist_name"],
-					"description": "Generated by PlayMood AI"
-				},
-				"status": {"privacyStatus": "private"}
-			}
-		).execute()
+        yt_playlist_id = playlist["id"]
+        success_count = 0
 
-		yt_playlist_id = playlist["id"]
+        # Last.fm formatına uygun döngü: artist_name ve track_name
+        for track in ai_playlist["tracks"]:
+            video_id = search_youtube(track["artist_name"], track["track_name"], youtube)
+            
+            if video_id:
+                if add_to_playlist(youtube, yt_playlist_id, video_id):
+                    success_count += 1
+                    print(f"✅ Added: {track['track_name']}")
 
-		# Track added videos to avoid duplicates
-		added_videos = set()
-		success_count = 0
-
-		for track in ai_playlist["tracks"]:
-			video_id = search_youtube(track["artist"], track["title"], youtube)
-			if video_id and video_id not in added_videos:
-				if add_to_playlist(youtube, yt_playlist_id, video_id):
-					added_videos.add(video_id)
-					success_count += 1
-					print(f"✅ Added: {track['artist']} - {track['title']}")
-
-		print(f"\n🎵 Playlist created! Added {success_count}/{len(ai_playlist['tracks'])} songs")
-		yt_url = f"https://www.youtube.com/playlist?list={yt_playlist_id}"
-		
-		# Redirect to frontend with YouTube URL
-		redirect_url = f"{frontend_url}/youtube-success?playlist={yt_playlist_id}"
-		return RedirectResponse(redirect_url)
-	
-	except HttpError as e:
-		error_details = json.loads(e.content.decode('utf-8'))
-		error_reason = error_details.get('error', {}).get('errors', [{}])[0].get('reason', 'unknown')
-		
-		if error_reason == 'quotaExceeded':
-			# Redirect to frontend with error message
-			error_message = "YouTube API quota exceeded. Please try again tomorrow or use a different Google account."
-			redirect_url = f"{frontend_url}/?error={error_message}"
-			return RedirectResponse(redirect_url)
-		else:
-			# Handle other HTTP errors
-			error_message = f"YouTube API error: {error_details.get('error', {}).get('message', 'Unknown error')}"
-			redirect_url = f"{frontend_url}/?error={error_message}"
-			return RedirectResponse(redirect_url)
-	
-	except Exception as e:
-		# Handle any other unexpected errors
-		print(f"Error in youtube_callback: {e}")
-		error_message = "An unexpected error occurred. Please try again later."
-		redirect_url = f"{frontend_url}/?error={error_message}"
-		return RedirectResponse(redirect_url)
+        return RedirectResponse(f"{frontend_url}/youtube-success?playlist={yt_playlist_id}")
+    
+    except Exception as e:
+        print(f"Error in youtube_callback: {e}")
+        return RedirectResponse(f"{frontend_url}/?error=failed_to_create_playlist")
