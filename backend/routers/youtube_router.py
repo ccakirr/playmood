@@ -17,6 +17,9 @@ router = APIRouter(prefix="/youtube", tags=["youtube"])
 # Bellek içi depolama (DİĞER ROUTER BURAYI IMPORT ETMELİ)
 playlists_db = {}
 
+# PKCE code_verifier'ı korumak için flow nesnelerini state'e göre sakla
+pending_flows: dict = {}
+
 def get_client_secrets_file():
     base64_secrets = os.getenv("GOOGLE_CLIENT_SECRETS_BASE64")
     if base64_secrets:
@@ -71,7 +74,7 @@ def add_to_playlist(youtube, playlist_id, video_id):
 def youtube_start(playlist_id: str):
     client_secrets_file = get_client_secrets_file()
     redirect_uri = os.getenv("REDIRECT_URI", "http://localhost:8000/youtube/callback")
-    
+
     flow = Flow.from_client_secrets_file(
         client_secrets_file,
         scopes=["https://www.googleapis.com/auth/youtube"],
@@ -83,6 +86,12 @@ def youtube_start(playlist_id: str):
         prompt="consent",
         state=playlist_id
     )
+
+    # Persist the flow so its PKCE code_verifier survives into /callback.
+    # Without this, a new Flow created in /callback has no verifier and
+    # Google returns: invalid_grant – Missing code verifier.
+    pending_flows[playlist_id] = flow
+
     return RedirectResponse(auth_url)
 
 @router.get("/callback")
@@ -90,17 +99,26 @@ def youtube_callback(request: Request):
     client_secrets_file = get_client_secrets_file()
     redirect_uri = os.getenv("REDIRECT_URI", "http://localhost:8000/youtube/callback")
     frontend_url = os.getenv("FRONTEND_URL", "http://localhost:5173")
-    
+
     try:
-        flow = Flow.from_client_secrets_file(
-            client_secrets_file,
-            scopes=["https://www.googleapis.com/auth/youtube"],
-            redirect_uri=redirect_uri
-        )
+        playlist_id_from_state = request.query_params.get("state")
+
+        # Retrieve the flow that was created in /start – it carries the
+        # PKCE code_verifier that Google requires during token exchange.
+        flow = pending_flows.pop(playlist_id_from_state, None)
+        if flow is None:
+            # Fallback: reconstruct without PKCE (will fail if Google enforced it,
+            # but guards against missing state rather than crashing unhandled).
+            flow = Flow.from_client_secrets_file(
+                client_secrets_file,
+                scopes=["https://www.googleapis.com/auth/youtube"],
+                redirect_uri=redirect_uri
+            )
+        else:
+            flow.redirect_uri = redirect_uri
+
         flow.fetch_token(authorization_response=str(request.url))
         credentials = flow.credentials
-
-        playlist_id_from_state = request.query_params.get("state")
         
         # Bu dosyadaki playlists_db'den veriyi alıyoruz
         ai_playlist = playlists_db.get(playlist_id_from_state)
