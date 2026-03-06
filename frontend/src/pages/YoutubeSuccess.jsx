@@ -41,7 +41,7 @@ const YoutubeSuccess = () => {
               </div>
 
               <div className="space-y-2">
-                <h1 className="text-2xl font-bold">Playlist Created!</h1>
+                <h1 className="mt-5 text-2xl font-bold">Playlist Created!</h1>
                 <p className="text-base-content/60 text-sm">
                   Your YouTube playlist is ready. Opening in a new tab
                   {!redirected && countdown > 0 && (

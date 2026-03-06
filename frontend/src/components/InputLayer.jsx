@@ -73,8 +73,7 @@ const InputLayer = () => {
               Play<span className="text-primary">Mood</span>
             </h1>
             <p className="max-w-2xl text-base text-base-content/70">
-              Describe a mood, artist, or moment. Our AI curates high-quality hits 
-              via <span className="font-semibold">Last.fm</span>.
+              Describe a mood, artist, or moment. Our AI curates high-quality hits.
             </p>
           </div>
 
