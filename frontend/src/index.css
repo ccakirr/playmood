@@ -17,3 +17,12 @@ html {
     color 200ms ease,
     border-color 200ms ease;
 }
+
+/* ── Scrollbar ─────────────────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track  { background: transparent; }
+::-webkit-scrollbar-thumb  { background: oklch(var(--bc) / 0.15); border-radius: 9999px; }
+::-webkit-scrollbar-thumb:hover { background: oklch(var(--bc) / 0.3); }
