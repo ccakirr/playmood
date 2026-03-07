@@ -104,20 +104,18 @@ const PlaylistDetailModal = ({ playlist, onClose }) => {
 const MyPlaylists = () => {
   const { token, user, fetchMyPlaylists, logout } = useAuthStore();
   const [playlists, setPlaylists] = useState([]);
-  const [loading, setLoading] = useState(true);
+  // Lazy initializer: start in "loading" only if we already have a token
+  const [loading, setLoading] = useState(() => !!token);
   const [error, setError] = useState("");
   const [selected, setSelected] = useState(null);
 
   useEffect(() => {
-    if (!token) {
-      setLoading(false);
-      return;
-    }
+    if (!token) return;
     fetchMyPlaylists()
       .then(setPlaylists)
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
-  }, [token]);
+  }, [token, fetchMyPlaylists]);
 
   // ── Not logged in ──────────────────────────────────────────────────────────
   if (!token) {
@@ -196,9 +194,15 @@ const MyPlaylists = () => {
                   {pl.playlist_name.charAt(0).toUpperCase()}
                 </div>
 
-                <p className="font-semibold line-clamp-3 text-sm leading-snug">
+                <p className="font-semibold line-clamp-2 text-sm leading-snug">
                   {pl.playlist_name}
                 </p>
+
+                {pl.prompt && pl.prompt !== pl.playlist_name && (
+                  <p className="text-xs text-base-content/50 italic line-clamp-2 leading-snug border-l-2 border-primary/30 pl-2">
+                    "{pl.prompt}"
+                  </p>
+                )}
 
                 <div className="flex items-center justify-between text-xs text-base-content/40">
                   <span>{pl.tracks.length} tracks</span>
