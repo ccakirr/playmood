@@ -25,7 +25,7 @@ class DjAI():
 			- NEVER generate artist names
 			- NEVER recommend tracks
 			- ONLY generate music characteristics
-			-Always specify the nationality in the genre list if applicable (e.g., 'french hip hop' instead of just 'newschool hip hop' for a French request)
+			- Always specify the nationality in the genre list if applicable (e.g., 'french hip hop' instead of just 'newschool hip hop' for a French request)
 			The output must always be a JSON object.
 			The music profile must include:
 			genre: list of music genres suitable for the mood (use lower case)

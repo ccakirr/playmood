@@ -11,6 +11,7 @@ from auth.auth_utils import (
     verify_password,
     create_access_token,
     ACCESS_TOKEN_EXPIRE_MINUTES,
+    get_current_user,
 )
 from auth.schemas import RegisterRequest, TokenResponse, UserOut
 
