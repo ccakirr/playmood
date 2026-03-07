@@ -128,15 +128,63 @@ class LastFmMusicFinder:
 
         return "pop"
 
+    # ── Yardımcı: sanatçı doğrulaması ────────────────────────────────────────
+    def _artist_matches_genre(self, artist_name: str, target_tag: str) -> bool:
+        """
+        Sanatçının Last.fm tag'lerini çekip target_tag ile uyumlu olup olmadığını
+        kontrol eder. Genre ailesi eşleşmesi yeterli (örn. "rap" → "hip hop" da geçer).
+        API hatası veya tag listesi boşsa True döner (eleme yapmaz).
+        """
+        # Hangi tag aileleri birbirinin yerine geçebilir
+        _GENRE_FAMILIES: list[set] = [
+            {"rap", "hip hop", "hip-hop", "hiphop", "trap", "drill"},
+            {"pop", "dance pop", "electropop", "synth-pop"},
+            {"rock", "indie rock", "alternative rock", "alt rock", "punk"},
+            {"metal", "heavy metal", "death metal", "black metal"},
+            {"electronic", "edm", "house", "techno", "trance", "electro"},
+            {"r&b", "rnb", "soul", "funk"},
+            {"jazz", "blues"},
+            {"classical", "orchestral"},
+            {"reggae", "dancehall", "reggaeton"},
+        ]
+
+        # target_tag'in ait olduğu aileyi bul
+        target_words = set(target_tag.lower().split())
+        target_family: set | None = None
+        for family in _GENRE_FAMILIES:
+            if target_words & family:
+                target_family = family
+                break
+
+        if target_family is None:
+            return True  # Bilinmeyen tür → eleme yapma
+
+        try:
+            resp = requests.get(self.base_url, params={
+                "method": "artist.gettoptags",
+                "artist": artist_name,
+                "api_key": self.api_key,
+                "format": "json",
+            }, timeout=4)
+            if resp.status_code != 200:
+                return True
+            tags = resp.json().get("toptags", {}).get("tag", [])
+            # İlk 5 tag'e bak (en ağırlıklı olanlar)
+            artist_top_tags = {t["name"].lower() for t in tags[:5]}
+            # Sanatçının herhangi bir tag'i hedef aileyle kesişiyor mu?
+            return bool(artist_top_tags & target_family)
+        except Exception:
+            return True  # Timeout vb. → eleme yapma
+
     # ── Yeni dönem: sanatçı bazlı arama ──────────────────────────────────────
     def _find_new_era_songs(self, tag: str, limit: int) -> list:
         """
         'newschool / yeni' sorguları için:
           1. tag.gettopartists  → janranın aktif sanatçıları (Çakal, Luciano …)
-          2. artist.gettoptracks → her sanatçının popüler şarkıları
-        Bu yöntem, istatistiksel olarak daha güncel sanatçılar ve şarkılar getirir.
+          2. Sanatçı doğrulaması → yanlış tür sanatçıları ele
+          3. artist.gettoptracks (listeners sayısına göre sıralı) → güncel şarkılar
         """
-        n_artists = min(6, limit)
+        n_artists = min(8, limit)  # Eleme olacağı için biraz fazla çek
         per_artist = max(2, (limit + n_artists - 1) // n_artists)
 
         print(f"🆕 Yeni dönem modu: '#{tag}' için sanatçılar çekiliyor...")
@@ -161,6 +209,11 @@ class LastFmMusicFinder:
             if not artist_name:
                 continue
 
+            # Sanatçı doğrulaması: tür uyumsuzsa atla
+            if not self._artist_matches_genre(artist_name, tag):
+                print(f"  ⛔ {artist_name} → tür uyumsuz, atlandı")
+                continue
+
             t_resp = requests.get(self.base_url, params={
                 "method": "artist.gettoptracks",
                 "artist": artist_name,
@@ -172,7 +225,15 @@ class LastFmMusicFinder:
                 continue
 
             tracks = t_resp.json().get("toptracks", {}).get("track", [])
-            for track in tracks[:per_artist]:
+
+            # Listeners sayısına göre sırala (playcount yerine — daha güncel gösterge)
+            tracks_sorted = sorted(
+                tracks,
+                key=lambda t: int(t.get("listeners", 0)),
+                reverse=True,
+            )
+
+            for track in tracks_sorted[:per_artist]:
                 song_list.append({
                     "track_name": track["name"],
                     "artist_name": track["artist"]["name"],
@@ -185,7 +246,10 @@ class LastFmMusicFinder:
 
     # ── Klasik dönem / nötr: tag bazlı arama ─────────────────────────────────
     def _find_top_tracks(self, tag: str, limit: int) -> list:
-        """tag.gettoptracks — tüm zamanların en popüler şarkıları (klasikler için ideal)."""
+        """
+        tag.gettoptracks — tüm zamanların en popüler şarkıları (klasikler için ideal).
+        Listeners sayısına göre yeniden sıralanır.
+        """
         print(f"🎵 Last.fm üzerinde '#{tag}' etiketli şarkılar aranıyor...")
         resp = requests.get(self.base_url, params={
             "method": "tag.gettoptracks",
@@ -196,14 +260,23 @@ class LastFmMusicFinder:
         })
         if resp.status_code != 200:
             return []
+
         tracks = resp.json().get("tracks", {}).get("track", [])
+
+        # Listeners sayısına göre sırala
+        tracks_sorted = sorted(
+            tracks,
+            key=lambda t: int(t.get("listeners", 0)),
+            reverse=True,
+        )
+
         return [
             {
                 "track_name": t["name"],
                 "artist_name": t["artist"]["name"],
                 "query": f"{t['name']} {t['artist']['name']} official audio",
             }
-            for t in tracks
+            for t in tracks_sorted
         ]
 
     # ── Ana arama fonksiyonu ───────────────────────────────────────────────────
