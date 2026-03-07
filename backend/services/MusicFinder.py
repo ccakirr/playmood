@@ -16,15 +16,25 @@ class LastFmMusicFinder:
 
     def find_songs(self, mood_data, limit=15):
         try:
-            # Last.fm etiket (tag) mantığıyla çalışır. 
-            # Tür ve mood keyword'lerini birleştirip en popüler olanı seçiyoruz.
-            genre = mood_data.get('genre', ['pop'])[0]
-            mood_tag = mood_data.get('mood_keywords', ['chill'])[0]
+            # DjAI'dan gelen listeleri temizleyelim
+            genres = [g.lower() for g in mood_data.get('genre', [])]
+            keywords = [k.lower() for k in mood_data.get('mood_keywords', [])]
             
-            # Anahtar kelimeyi belirliyoruz (Örn: "rnb" veya "romantic")
-            # Last.fm'de tag aratırken en güçlü olanı seçmek daha iyi sonuç verir.
-            target_tag = mood_tag if mood_tag else genre
+            # 1. EN GÜÇLÜ TAG'İ BELİRLEME
+            # İlk janra genelde en belirleyici olandır (Örn: 'turkish rap', 'french pop')
+            primary_genre = genres[0] if genres else "pop"
             
+            # 2. ÜLKE/DİL BAZLI TEMİZLİK
+            # Eğer janra içinde spesifik bir ülke varsa (German, French, Turkish vb.)
+            # Last.fm'in "newschool" gibi kelimelerle sapıtmasını engellemek için 
+            # janrayı ana arama terimi yapıyoruz.
+            target_tag = primary_genre
+
+            # 3. ÖZEL DURUM: Eğer janra çok kısaysa veya sadece 'newschool' gibi 
+            # belirsiz bir şeyse, mood keyword'lerinden destek al.
+            if len(target_tag) < 3 or target_tag in ["new", "old", "best"]:
+                target_tag = keywords[0] if keywords else "pop"
+
             print(f"🎵 Last.fm üzerinde '#{target_tag}' etiketli hitler aranıyor...")
 
             params = {
@@ -38,15 +48,19 @@ class LastFmMusicFinder:
             response = requests.get(self.base_url, params=params)
             
             if response.status_code != 200:
-                print(f"❌ Last.fm Hatası: {response.status_code}")
                 return []
 
             data = response.json()
             tracks = data.get('tracks', {}).get('track', [])
             
+            # FALLBACK: Eğer sonuç gelmezse janrayı basitleştir (Örn: 'turkish rap' -> 'rap')
+            if not tracks and " " in target_tag:
+                simplified_tag = target_tag.split()[-1]
+                print(f"⚠️ Sonuç yok, basitleştiriliyor: #{simplified_tag}")
+                return self.find_songs({"genre": [simplified_tag]}, limit)
+
             song_list = []
             for track in tracks:
-                # Last.fm zaten en popülerleri getirdiği için ekstra filtreye pek gerek kalmaz
                 song_list.append({
                     "track_name": track['name'],
                     "artist_name": track['artist']['name'],
@@ -56,6 +70,5 @@ class LastFmMusicFinder:
             return song_list
 
         except Exception as e:
-            print(f"❌ Kritik Hata: {e}")
+            print(f"❌ Hata: {e}")
             return []
-
