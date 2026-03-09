@@ -17,7 +17,8 @@ const MOOD_COLORS = [
 
 const getMoodColor = (seed = "") => {
   let h = 0;
-  for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) % MOOD_COLORS.length;
+  for (let i = 0; i < seed.length; i++)
+    h = (h * 31 + seed.charCodeAt(i)) % MOOD_COLORS.length;
   return MOOD_COLORS[h];
 };
 
@@ -42,9 +43,24 @@ const EmptyState = ({ notLoggedIn }) => (
     className="flex flex-col items-center justify-center py-24 gap-6"
   >
     {/* SVG illustration */}
-    <svg className="w-32 h-32 text-base-content/10" fill="none" viewBox="0 0 120 120">
-      <circle cx="60" cy="60" r="56" stroke="currentColor" strokeWidth="3" strokeDasharray="8 6" />
-      <path d="M44 52c0-8.837 7.163-16 16-16s16 7.163 16 16v18a4 4 0 01-8 0V52a8 8 0 00-16 0v18a4 4 0 01-8 0V52z" fill="currentColor" opacity=".4" />
+    <svg
+      className="w-32 h-32 text-base-content/10"
+      fill="none"
+      viewBox="0 0 120 120"
+    >
+      <circle
+        cx="60"
+        cy="60"
+        r="56"
+        stroke="currentColor"
+        strokeWidth="3"
+        strokeDasharray="8 6"
+      />
+      <path
+        d="M44 52c0-8.837 7.163-16 16-16s16 7.163 16 16v18a4 4 0 01-8 0V52a8 8 0 00-16 0v18a4 4 0 01-8 0V52z"
+        fill="currentColor"
+        opacity=".4"
+      />
       <circle cx="48" cy="74" r="6" fill="currentColor" opacity=".5" />
       <circle cx="72" cy="74" r="6" fill="currentColor" opacity=".5" />
     </svg>
@@ -53,17 +69,25 @@ const EmptyState = ({ notLoggedIn }) => (
       <>
         <div className="text-center space-y-1">
           <p className="text-xl font-semibold">Sign in to see your playlists</p>
-          <p className="text-sm text-base-content/50">Your saved playlists will appear here</p>
+          <p className="text-sm text-base-content/50">
+            Your saved playlists will appear here
+          </p>
         </div>
-        <Link to="/" className="btn btn-primary btn-sm px-6">← Go to home</Link>
+        <Link to="/" className="btn btn-primary btn-sm px-6">
+          ← Go to home
+        </Link>
       </>
     ) : (
       <>
         <div className="text-center space-y-1">
           <p className="text-xl font-semibold">No playlists yet</p>
-          <p className="text-sm text-base-content/50">Generate your first playlist and hit Save</p>
+          <p className="text-sm text-base-content/50">
+            Generate your first playlist and hit Save
+          </p>
         </div>
-        <Link to="/" className="btn btn-primary btn-sm px-6">Generate one now</Link>
+        <Link to="/" className="btn btn-primary btn-sm px-6">
+          Generate one now
+        </Link>
       </>
     )}
   </Motion.div>
@@ -79,12 +103,21 @@ const PlaylistDetailModal = ({ playlist, onClose }) => {
 
   const handleYouTube = async () => {
     setYtLoading(true);
+    // Open window synchronously inside the user-gesture handler so mobile
+    // browsers (iOS Safari etc.) don't block it as a popup.
+    const newWindow = window.open("", "_blank");
     try {
       const baseUrl = import.meta.env.VITE_API_URL || "http://localhost:8000";
       const tempId = await restoreForYoutube(playlist.id);
-      window.open(`${baseUrl}/youtube/start?playlist_id=${tempId}`, "_blank");
+      if (newWindow) {
+        newWindow.location.href = `${baseUrl}/youtube/start?playlist_id=${tempId}`;
+      }
     } catch (e) {
-      addToast({ message: "YouTube export failed: " + e.message, type: "error" });
+      if (newWindow) newWindow.close();
+      addToast({
+        message: "YouTube export failed: " + e.message,
+        type: "error",
+      });
     } finally {
       setYtLoading(false);
     }
@@ -111,25 +144,44 @@ const PlaylistDetailModal = ({ playlist, onClose }) => {
           {/* Header */}
           <div className="flex items-start justify-between gap-4">
             <div className="min-w-0">
-              <h3 className="text-xl font-bold line-clamp-2">{playlist.playlist_name}</h3>
+              <h3 className="text-xl font-bold line-clamp-2">
+                {playlist.playlist_name}
+              </h3>
               <p className="text-xs text-base-content/40 mt-1">
                 {new Date(playlist.created_at).toLocaleDateString("en-US", {
-                  year: "numeric", month: "long", day: "numeric",
+                  year: "numeric",
+                  month: "long",
+                  day: "numeric",
                 })}
-                {" · "}{playlist.tracks.length} tracks
+                {" · "}
+                {playlist.tracks.length} tracks
               </p>
             </div>
-            <button onClick={onClose} className="btn btn-ghost btn-sm btn-circle shrink-0">✕</button>
+            <button
+              onClick={onClose}
+              className="btn btn-ghost btn-sm btn-circle shrink-0"
+            >
+              ✕
+            </button>
           </div>
 
           {/* Track list */}
           <ul className="divide-y divide-base-200 rounded-xl border border-base-200 overflow-y-auto flex-1">
             {playlist.tracks.map((track, i) => (
-              <li key={i} className="flex items-center gap-3 px-4 py-2.5 hover:bg-base-200/40 transition-colors">
-                <span className="text-xs text-base-content/40 font-mono w-5 shrink-0 tabular-nums">{i + 1}</span>
+              <li
+                key={i}
+                className="flex items-center gap-3 px-4 py-2.5 hover:bg-base-200/40 transition-colors"
+              >
+                <span className="text-xs text-base-content/40 font-mono w-5 shrink-0 tabular-nums">
+                  {i + 1}
+                </span>
                 <div className="flex flex-col min-w-0">
-                  <span className="font-medium truncate">{track.track_name}</span>
-                  <span className="text-sm text-base-content/60 truncate">{track.artist_name}</span>
+                  <span className="font-medium truncate">
+                    {track.track_name}
+                  </span>
+                  <span className="text-sm text-base-content/60 truncate">
+                    {track.artist_name}
+                  </span>
                 </div>
               </li>
             ))}
@@ -143,7 +195,9 @@ const PlaylistDetailModal = ({ playlist, onClose }) => {
             disabled={ytLoading}
             className="btn btn-error w-full gap-2"
           >
-            {ytLoading ? <span className="loading loading-spinner loading-sm" /> : (
+            {ytLoading ? (
+              <span className="loading loading-spinner loading-sm" />
+            ) : (
               <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
                 <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" />
               </svg>
@@ -160,7 +214,9 @@ const PlaylistDetailModal = ({ playlist, onClose }) => {
 const PlaylistCard = ({ pl, index, onClick }) => {
   const [hovered, setHovered] = useState(false);
   const colorClass = getMoodColor(pl.playlist_name);
-  const previewArtists = [...new Set(pl.tracks.slice(0, 4).map((t) => t.artist_name))].slice(0, 3);
+  const previewArtists = [
+    ...new Set(pl.tracks.slice(0, 4).map((t) => t.artist_name)),
+  ].slice(0, 3);
 
   return (
     <Motion.button
@@ -179,7 +235,9 @@ const PlaylistCard = ({ pl, index, onClick }) => {
       <div className="absolute -top-6 -right-6 w-24 h-24 rounded-full bg-current opacity-5 blur-2xl pointer-events-none" />
 
       {/* Icon */}
-      <div className={`w-10 h-10 rounded-xl bg-current/10 border border-current/20 flex items-center justify-center text-base font-bold`}>
+      <div
+        className={`w-10 h-10 rounded-xl bg-current/10 border border-current/20 flex items-center justify-center text-base font-bold`}
+      >
         {pl.playlist_name.charAt(0).toUpperCase()}
       </div>
 
@@ -199,25 +257,28 @@ const PlaylistCard = ({ pl, index, onClick }) => {
           >
             <div className="space-y-0.5 pt-1 border-t border-current/10">
               {previewArtists.map((a, i) => (
-                <p key={i} className="text-xs text-base-content/60 truncate flex items-center gap-1">
+                <p
+                  key={i}
+                  className="text-xs text-base-content/60 truncate flex items-center gap-1"
+                >
                   <span className="w-1 h-1 rounded-full bg-current/50 shrink-0" />
                   {a}
                 </p>
               ))}
             </div>
           </Motion.div>
+        ) : pl.prompt && pl.prompt !== pl.playlist_name ? (
+          <Motion.p
+            key="prompt"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="text-xs text-base-content/50 italic line-clamp-2 leading-snug border-l-2 border-current/30 pl-2"
+          >
+            "{pl.prompt}"
+          </Motion.p>
         ) : (
-          pl.prompt && pl.prompt !== pl.playlist_name ? (
-            <Motion.p
-              key="prompt"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="text-xs text-base-content/50 italic line-clamp-2 leading-snug border-l-2 border-current/30 pl-2"
-            >
-              "{pl.prompt}"
-            </Motion.p>
-          ) : <Motion.span key="empty" />
+          <Motion.span key="empty" />
         )}
       </AnimatePresence>
 
@@ -226,7 +287,9 @@ const PlaylistCard = ({ pl, index, onClick }) => {
         <span className="font-medium">{pl.tracks.length} tracks</span>
         <span>
           {new Date(pl.created_at).toLocaleDateString("en-US", {
-            month: "short", day: "numeric", year: "numeric",
+            month: "short",
+            day: "numeric",
+            year: "numeric",
           })}
         </span>
       </div>
@@ -258,7 +321,10 @@ const MyPlaylists = () => {
     <div className="min-h-[calc(100vh-8rem)] bg-gradient-to-br from-base-200 to-base-300 px-6 py-12">
       <AnimatePresence>
         {selected && (
-          <PlaylistDetailModal playlist={selected} onClose={() => setSelected(null)} />
+          <PlaylistDetailModal
+            playlist={selected}
+            onClose={() => setSelected(null)}
+          />
         )}
       </AnimatePresence>
 
@@ -274,8 +340,18 @@ const MyPlaylists = () => {
             <p className="text-base-content/50 text-sm mt-0.5">{user?.email}</p>
           </div>
           <Link to="/" className="btn btn-ghost btn-sm gap-1">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+            <svg
+              className="w-4 h-4"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M12 4v16m8-8H4"
+              />
             </svg>
             Generate New
           </Link>
@@ -291,7 +367,9 @@ const MyPlaylists = () => {
         {/* Skeleton */}
         {loading && (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} />)}
+            {Array.from({ length: 6 }).map((_, i) => (
+              <SkeletonCard key={i} />
+            ))}
           </div>
         )}
 
@@ -300,7 +378,10 @@ const MyPlaylists = () => {
 
         {/* Bento grid */}
         {!loading && playlists.length > 0 && (
-          <Motion.div layout className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <Motion.div
+            layout
+            className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
+          >
             {playlists.map((pl, i) => (
               <PlaylistCard
                 key={pl.id}

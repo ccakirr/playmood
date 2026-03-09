@@ -62,7 +62,10 @@ const List = ({ result, prompt = "" }) => {
 
   const handleYouTubeExport = () => {
     const baseUrl = import.meta.env.VITE_API_URL || "http://localhost:8000";
-    window.open(`${baseUrl}/youtube/start?playlist_id=${result.playlist_id}`, "_blank");
+    window.open(
+      `${baseUrl}/youtube/start?playlist_id=${result.playlist_id}`,
+      "_blank",
+    );
   };
 
   return (
@@ -94,16 +97,40 @@ const List = ({ result, prompt = "" }) => {
           >
             <AnimatePresence mode="wait" initial={false}>
               {saving ? (
-                <motion.span key="spin" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                <motion.span
+                  key="spin"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                >
                   <span className="loading loading-spinner loading-xs" />
                 </motion.span>
               ) : saved ? (
-                <motion.span key="saved" initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} className="flex items-center gap-1">
+                <motion.span
+                  key="saved"
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="flex items-center gap-1"
+                >
                   ✓ Saved
                 </motion.span>
               ) : (
-                <motion.span key="save" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex items-center gap-1.5">
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4">
+                <motion.span
+                  key="save"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="flex items-center gap-1.5"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    className="w-4 h-4"
+                  >
                     <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
                     <polyline points="17 21 17 13 7 13 7 21" />
                     <polyline points="7 3 7 8 15 8" />
@@ -183,7 +210,11 @@ const List = ({ result, prompt = "" }) => {
                 aria-label={`Open ${track.track_name} on YouTube`}
                 title="Open on YouTube"
               >
-                <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="currentColor"
+                  className="w-5 h-5"
+                >
                   <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" />
                 </svg>
               </motion.a>
@@ -196,4 +227,3 @@ const List = ({ result, prompt = "" }) => {
 };
 
 export default List;
-

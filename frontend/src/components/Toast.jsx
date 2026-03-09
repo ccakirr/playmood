@@ -9,13 +9,16 @@ let _id = 0;
 export const ToastProvider = ({ children }) => {
   const [toasts, setToasts] = useState([]);
 
-  const addToast = useCallback(({ message, type = "success", duration = 3500 }) => {
-    const id = ++_id;
-    setToasts((prev) => [...prev, { id, message, type }]);
-    setTimeout(() => {
-      setToasts((prev) => prev.filter((t) => t.id !== id));
-    }, duration);
-  }, []);
+  const addToast = useCallback(
+    ({ message, type = "success", duration = 3500 }) => {
+      const id = ++_id;
+      setToasts((prev) => [...prev, { id, message, type }]);
+      setTimeout(() => {
+        setToasts((prev) => prev.filter((t) => t.id !== id));
+      }, duration);
+    },
+    [],
+  );
 
   const removeToast = useCallback((id) => {
     setToasts((prev) => prev.filter((t) => t.id !== id));
@@ -37,24 +40,54 @@ export const ToastProvider = ({ children }) => {
               transition={{ type: "spring", stiffness: 400, damping: 30 }}
               className={`pointer-events-auto flex items-center gap-3 px-4 py-3 rounded-xl shadow-lg border text-sm font-medium min-w-[240px] max-w-xs backdrop-blur-md
                 ${t.type === "success" ? "bg-success/15 border-success/30 text-success" : ""}
-                ${t.type === "error"   ? "bg-error/15 border-error/30 text-error" : ""}
-                ${t.type === "info"    ? "bg-info/15 border-info/30 text-info" : ""}
+                ${t.type === "error" ? "bg-error/15 border-error/30 text-error" : ""}
+                ${t.type === "info" ? "bg-info/15 border-info/30 text-info" : ""}
               `}
             >
               {/* Icon */}
               {t.type === "success" && (
-                <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                <svg
+                  className="w-4 h-4 shrink-0"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M5 13l4 4L19 7"
+                  />
                 </svg>
               )}
               {t.type === "error" && (
-                <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                <svg
+                  className="w-4 h-4 shrink-0"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M6 18L18 6M6 6l12 12"
+                  />
                 </svg>
               )}
               {t.type === "info" && (
-                <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01" />
+                <svg
+                  className="w-4 h-4 shrink-0"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M13 16h-1v-4h-1m1-4h.01"
+                  />
                   <circle cx="12" cy="12" r="9" strokeLinecap="round" />
                 </svg>
               )}
