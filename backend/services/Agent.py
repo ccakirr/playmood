@@ -54,7 +54,14 @@ class DjAI():
 			raise RuntimeError(f"LLM request failed: {e}")
 
 		raw = response.output_text
-		data = json.loads(raw)
+		# Strip <think>...</think> blocks (Qwen3 chain-of-thought)
+		import re
+		raw = re.sub(r"<think>[\s\S]*?</think>", "", raw).strip()
+		# Extract first JSON object from the response
+		match = re.search(r"\{[\s\S]*\}", raw)
+		if not match:
+			raise ValueError("LLM did not return a JSON object")
+		data = json.loads(match.group())
 		validated = MoodTransformation(**data)
 
 		return validated.model_dump()

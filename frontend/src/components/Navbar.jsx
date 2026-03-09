@@ -33,6 +33,7 @@ const Navbar = () => {
   const avatarInitial = user?.email?.[0]?.toUpperCase() ?? "?";
 
   return (
+    <>
     <div
       className={`navbar sticky top-0 z-40 transition-all duration-300 ${
         scrolled
@@ -164,6 +165,7 @@ const Navbar = () => {
       onClose={() => setAuthOpen(false)}
       onSuccess={() => setAuthOpen(false)}
     />
+    </>
   );
 };
 
