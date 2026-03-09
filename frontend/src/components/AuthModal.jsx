@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuthStore } from "../store/useAuthStore";
 
 /**
@@ -8,12 +8,22 @@ import { useAuthStore } from "../store/useAuthStore";
  *   onClose  – () => void
  *   onSuccess – () => void  (called after successful auth so parent can retry)
  */
-const AuthModal = ({ isOpen, onClose, onSuccess }) => {
-  const [mode, setMode] = useState("login"); // "login" | "register"
+const AuthModal = ({ isOpen, onClose, onSuccess, initialMode = "login" }) => {
+  const [mode, setMode] = useState(initialMode); // "login" | "register"
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  // Reset to the requested mode every time the modal opens
+  useEffect(() => {
+    if (isOpen) {
+      setMode(initialMode);
+      setEmail("");
+      setPassword("");
+      setError("");
+    }
+  }, [isOpen, initialMode]);
 
   const { login, register } = useAuthStore();
 
