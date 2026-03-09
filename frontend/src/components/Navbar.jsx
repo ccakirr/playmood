@@ -2,12 +2,14 @@ import React, { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import ThemeController from "./ThemeController";
+import AuthModal from "./AuthModal";
 import { useAuthStore } from "../store/useAuthStore";
 
 const Navbar = () => {
   const { user, logout } = useAuthStore();
   const [scrolled, setScrolled] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [authOpen, setAuthOpen] = useState(false);
   const dropdownRef = useRef(null);
 
   // Glass effect on scroll
@@ -141,12 +143,27 @@ const Navbar = () => {
                 </AnimatePresence>
               </div>
             </>
-          ) : null}
+          ) : (
+            <motion.button
+              whileHover={{ scale: 1.04 }}
+              whileTap={{ scale: 0.96 }}
+              onClick={() => setAuthOpen(true)}
+              className="btn btn-primary btn-sm px-5"
+            >
+              Sign in
+            </motion.button>
+          )}
 
           <ThemeController />
         </div>
       </div>
     </div>
+
+    <AuthModal
+      isOpen={authOpen}
+      onClose={() => setAuthOpen(false)}
+      onSuccess={() => setAuthOpen(false)}
+    />
   );
 };
 
