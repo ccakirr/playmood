@@ -117,6 +117,24 @@ def my_playlists(
     )
 
 
+@router.delete("/{playlist_id}", status_code=204)
+def delete_playlist(
+    playlist_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Delete a playlist by ID (owner only)."""
+    playlist = (
+        db.query(PlaylistModel)
+        .filter(PlaylistModel.id == playlist_id, PlaylistModel.user_id == current_user.id)
+        .first()
+    )
+    if not playlist:
+        raise HTTPException(status_code=404, detail="Playlist not found.")
+    db.delete(playlist)
+    db.commit()
+
+
 @router.get("/restore-for-youtube/{db_id}")
 def restore_for_youtube(
     db_id: int,

@@ -94,10 +94,11 @@ const EmptyState = ({ notLoggedIn }) => (
 );
 
 // ── Detail modal ──────────────────────────────────────────────────────────────
-const PlaylistDetailModal = ({ playlist, onClose }) => {
+const PlaylistDetailModal = ({ playlist, onClose, onDelete }) => {
   const { restoreForYoutube } = useAuthStore();
   const { addToast } = useToast();
   const [ytLoading, setYtLoading] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   if (!playlist) return null;
 
@@ -157,12 +158,51 @@ const PlaylistDetailModal = ({ playlist, onClose }) => {
                 {playlist.tracks.length} tracks
               </p>
             </div>
-            <button
-              onClick={onClose}
-              className="btn btn-ghost btn-sm btn-circle shrink-0"
-            >
-              ✕
-            </button>
+            <div className="flex items-center gap-1 shrink-0">
+              {confirmDelete ? (
+                <>
+                  <button
+                    onClick={() => onDelete(playlist.id)}
+                    className="btn btn-error btn-sm gap-1"
+                  >
+                    Confirm Delete
+                  </button>
+                  <button
+                    onClick={() => setConfirmDelete(false)}
+                    className="btn btn-ghost btn-sm"
+                  >
+                    Cancel
+                  </button>
+                </>
+              ) : (
+                <button
+                  onClick={() => setConfirmDelete(true)}
+                  className="btn btn-ghost btn-sm btn-circle text-error/60 hover:text-error hover:bg-error/10"
+                  title="Delete playlist"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="w-4 h-4"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                    />
+                  </svg>
+                </button>
+              )}
+              <button
+                onClick={onClose}
+                className="btn btn-ghost btn-sm btn-circle"
+              >
+                ✕
+              </button>
+            </div>
           </div>
 
           {/* Track list */}
@@ -211,15 +251,25 @@ const PlaylistDetailModal = ({ playlist, onClose }) => {
 };
 
 // ── Bento playlist card ───────────────────────────────────────────────────────
-const PlaylistCard = ({ pl, index, onClick }) => {
+const PlaylistCard = ({ pl, index, onClick, onDelete }) => {
   const [hovered, setHovered] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const colorClass = getMoodColor(pl.playlist_name);
   const previewArtists = [
     ...new Set(pl.tracks.slice(0, 4).map((t) => t.artist_name)),
   ].slice(0, 3);
 
+  const handleDeleteClick = (e) => {
+    e.stopPropagation();
+    if (confirmDelete) {
+      onDelete(pl.id);
+    } else {
+      setConfirmDelete(true);
+    }
+  };
+
   return (
-    <Motion.button
+    <Motion.div
       layout
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
@@ -227,8 +277,8 @@ const PlaylistCard = ({ pl, index, onClick }) => {
       whileHover={{ y: -4, scale: 1.02 }}
       whileTap={{ scale: 0.98 }}
       onClick={onClick}
-      onHoverStart={() => setHovered(true)}
-      onHoverEnd={() => setHovered(false)}
+      onHoverStart={() => { setHovered(true); }}
+      onHoverEnd={() => { setHovered(false); setConfirmDelete(false); }}
       className={`relative text-left rounded-2xl border bg-gradient-to-br ${colorClass} shadow hover:shadow-lg transition-shadow duration-200 p-5 space-y-3 cursor-pointer overflow-hidden w-full`}
     >
       {/* Glassmorphism glow blob */}
@@ -285,25 +335,68 @@ const PlaylistCard = ({ pl, index, onClick }) => {
       {/* Footer */}
       <div className="flex items-center justify-between text-xs text-base-content/40 pt-1">
         <span className="font-medium">{pl.tracks.length} tracks</span>
-        <span>
-          {new Date(pl.created_at).toLocaleDateString("en-US", {
-            month: "short",
-            day: "numeric",
-            year: "numeric",
-          })}
-        </span>
+        <div className="flex items-center gap-2">
+          <span>
+            {new Date(pl.created_at).toLocaleDateString("en-US", {
+              month: "short",
+              day: "numeric",
+              year: "numeric",
+            })}
+          </span>
+          {hovered && (
+            <button
+              onClick={handleDeleteClick}
+              className={`btn btn-xs gap-1 transition-colors ${
+                confirmDelete
+                  ? "btn-error"
+                  : "btn-ghost opacity-60 hover:opacity-100"
+              }`}
+            >
+              {confirmDelete ? (
+                "Delete?"
+              ) : (
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="w-3.5 h-3.5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                  />
+                </svg>
+              )}
+            </button>
+          )}
+        </div>
       </div>
-    </Motion.button>
+    </Motion.div>
   );
 };
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 const MyPlaylists = () => {
-  const { token, user, fetchMyPlaylists } = useAuthStore();
+  const { token, user, fetchMyPlaylists, deletePlaylist } = useAuthStore();
+  const { addToast } = useToast();
   const [playlists, setPlaylists] = useState([]);
   const [loading, setLoading] = useState(() => !!token);
   const [error, setError] = useState("");
   const [selected, setSelected] = useState(null);
+
+  const handleDelete = async (id) => {
+    try {
+      await deletePlaylist(id);
+      setPlaylists((prev) => prev.filter((p) => p.id !== id));
+      setSelected(null);
+      addToast({ message: "Playlist deleted.", type: "success" });
+    } catch (e) {
+      addToast({ message: "Delete failed: " + e.message, type: "error" });
+    }
+  };
 
   useEffect(() => {
     if (!token) return;
@@ -324,6 +417,7 @@ const MyPlaylists = () => {
           <PlaylistDetailModal
             playlist={selected}
             onClose={() => setSelected(null)}
+            onDelete={handleDelete}
           />
         )}
       </AnimatePresence>
@@ -388,6 +482,7 @@ const MyPlaylists = () => {
                 pl={pl}
                 index={i}
                 onClick={() => setSelected(pl)}
+                onDelete={handleDelete}
               />
             ))}
           </Motion.div>

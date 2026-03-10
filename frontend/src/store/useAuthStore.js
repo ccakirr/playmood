@@ -86,6 +86,20 @@ export const useAuthStore = create((set, get) => ({
     return data;
   },
 
+  // ── Delete playlist ───────────────────────────────────────────────────────
+  deletePlaylist: async (playlistId) => {
+    const { token } = get();
+    if (!token) throw new Error("Not authenticated.");
+    const res = await fetch(`${BASE_URL()}/playlist/${playlistId}`, {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) {
+      const data = await res.json();
+      throw new Error(data.detail || "Delete failed.");
+    }
+  },
+
   // ── Restore saved playlist into in-memory store for YouTube export ────────
   restoreForYoutube: async (dbId) => {
     const { token } = get();
